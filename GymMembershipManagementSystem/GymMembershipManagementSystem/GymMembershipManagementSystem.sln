@@ -1,0 +1,33 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35931.197
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GymMembershipManagementSystem", "GymMembershipManagementSystem.csproj", "{59C9218F-57E7-4B34-AB25-B7E4C03D7CED}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GymMembershipManagementSystem.Tests", "..\GymMembershipManagementSystem.Tests\GymMembershipManagementSystem.Tests.csproj", "{52871B53-6575-479A-BC0C-44DF1A8877F3}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Elementos de la solución", "Elementos de la solución", "{D107F4C8-89CC-BEA8-D3D7-CA6B7733353D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{59C9218F-57E7-4B34-AB25-B7E4C03D7CED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{59C9218F-57E7-4B34-AB25-B7E4C03D7CED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{59C9218F-57E7-4B34-AB25-B7E4C03D7CED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{59C9218F-57E7-4B34-AB25-B7E4C03D7CED}.Release|Any CPU.Build.0 = Release|Any CPU
+		{52871B53-6575-479A-BC0C-44DF1A8877F3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{52871B53-6575-479A-BC0C-44DF1A8877F3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{52871B53-6575-479A-BC0C-44DF1A8877F3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{52871B53-6575-479A-BC0C-44DF1A8877F3}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {9D6B9B52-BF75-415C-A3A2-B1000FF24BA9}
+	EndGlobalSection
+EndGlobal
