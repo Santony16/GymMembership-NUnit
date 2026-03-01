@@ -7,67 +7,62 @@ namespace GymMembershipManagementSystem.Services
 {
     public class MembershipService
     {
-        private readonly List<Membership> _memberships;
+        private readonly IMembershipRepository _repo;
         private readonly PointsConfiguration _config;
 
-        // Constructor vacío (para uso normal)
-        public MembershipService()
+        // Constructor CON parámetros — para Mocks
+        public MembershipService(IMembershipRepository repo, PointsConfiguration config)
         {
-            _memberships = new List<Membership>();
-            _config = new PointsConfiguration();
+            _repo = repo;
+            _config = config;
         }
 
-        // Constructor con 2 parámetros (para tests o mocks)
-        public MembershipService(List<Membership> memberships, PointsConfiguration config)
+        // Constructor SIN parámetros — uso normal
+        public MembershipService()
+            : this(new InMemoryMembershipRepository(), new PointsConfiguration())
         {
-            _memberships = memberships ?? new List<Membership>();
-            _config = config ?? new PointsConfiguration();
         }
 
         // History 1
         public Membership RegisterMembership(string userName)
         {
             var membership = new Membership(userName);
-            _memberships.Add(membership);
+            _repo.Add(membership);
             return membership;
         }
 
         // History 2
         public void ActivateMembership(Guid id)
         {
-            GetById(id).Activate();
+            _repo.GetById(id).Activate();
         }
 
         public void DeactivateMembership(Guid id)
         {
-            GetById(id).Deactivate();
+            _repo.GetById(id).Deactivate();
         }
 
         // History 3
         public bool GetMembershipStatus(Guid id)
         {
-            return GetById(id).IsActive;
+            return _repo.GetById(id).IsActive;
         }
 
         // History 4
         public void AccumulatePoints(Guid id)
         {
-            var membership = GetById(id);
-
+            var membership = _repo.GetById(id);
             if (!membership.IsActive)
                 throw new InvalidOperationException("Membership inactive");
-
             membership.AddPoints(_config.PointsPerUse, "Gym visit");
         }
 
         // History 5
         public void RedeemPoints(Guid id)
         {
-            var membership = GetById(id);
-
+            var membership = _repo.GetById(id);
             if (membership.Points < _config.MinimumPointsToRedeem)
                 throw new InvalidOperationException("Minimum points not reached");
-
             membership.RedeemPoints(_config.MinimumPointsToRedeem, "Reward redemption");
         }
 
@@ -86,42 +81,31 @@ namespace GymMembershipManagementSystem.Services
         // History 8
         public IReadOnlyList<PointTransaction> GetTransactionHistory(Guid id)
         {
-            return GetById(id).Transactions;
+            return _repo.GetById(id).Transactions;
         }
 
         // History 9
         public (int Active, int Inactive) GenerateMembershipReport()
         {
-            int active = _memberships.Count(m => m.IsActive);
-            int inactive = _memberships.Count(m => !m.IsActive);
-
+            var all = _repo.GetAll();
+            int active = all.Count(m => m.IsActive);
+            int inactive = all.Count(m => !m.IsActive);
             return (active, inactive);
         }
 
         // History 10
         public (int TotalEarned, int TotalRedeemed) GeneratePointsReport()
         {
-            int earned = _memberships
+            var all = _repo.GetAll();
+            int earned = all
                 .SelectMany(m => m.Transactions)
                 .Where(t => t.Type == TransactionType.Earned)
                 .Sum(t => t.Points);
-
-            int redeemed = _memberships
+            int redeemed = all
                 .SelectMany(m => m.Transactions)
                 .Where(t => t.Type == TransactionType.Redeemed)
                 .Sum(t => t.Points);
-
             return (earned, redeemed);
-        }
-
-        private Membership GetById(Guid id)
-        {
-            var membership = _memberships.FirstOrDefault(m => m.Id == id);
-
-            if (membership == null)
-                throw new Exception("Membership not found");
-
-            return membership;
         }
     }
 }

@@ -1,110 +1,158 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using NUnit.Framework;
+using NSubstitute;
+using GymMembershipManagementSystem.Services;
 using GymMembershipManagementSystem.Business;
+using System;
+using System.Collections.Generic;
 
-namespace GymMembershipManagementSystem.Services
+namespace GymMembershipManagementSystem.Tests
 {
-    public class MembershipService
+    [TestFixture]
+    public class MembershipServiceMockTests
     {
-        private readonly IMembershipRepository _repo;
-        private readonly PointsConfiguration _config;
+        private MembershipService _service;
+        private IMembershipRepository _repoMock;
+        private PointsConfiguration _config;
 
-        public MembershipService(IMembershipRepository repo, PointsConfiguration config)
+        [SetUp]
+        public void Setup()
         {
-            _repo = repo;
-            _config = config;
+            // Aquí se crea el Mock — NSubstitute simula el repositorio
+            _repoMock = Substitute.For<IMembershipRepository>();
+            _config = new PointsConfiguration();
+            _service = new MembershipService(_repoMock, _config);
         }
 
-        // Constructor SIN parámetros — mantiene compatibilidad con tests existentes
-        public MembershipService()
-            : this(new InMemoryMembershipRepository(), new PointsConfiguration())
+        // MOCK-01: Verifica que RegisterMembership llama Add() en el repositorio
+        [Test]
+        public void RegisterMembership_ShouldCallRepositoryAdd()
         {
+            // Arrange
+            var userName = "Anthony";
+
+            // Act
+            _service.RegisterMembership(userName);
+
+            // Assert — Mock verifica que Add() fue llamado 1 vez
+            _repoMock.Received(1).Add(
+                Arg.Is<Membership>(m => m.UserName == userName));
         }
 
-        // History 1
-        public Membership RegisterMembership(string userName)
+        // MOCK-02: AccumulatePoints suma puntos cuando membresía está activa
+        [Test]
+        public void AccumulatePoints_ActiveMembership_AddsPoints()
         {
-            var membership = new Membership(userName);
-            _repo.Add(membership);
-            return membership;
+            // Arrange
+            var membership = new Membership("Anthony");
+            _repoMock.GetById(membership.Id).Returns(membership);
+
+            // Act
+            _service.AccumulatePoints(membership.Id);
+
+            // Assert
+            Assert.AreEqual(10, membership.Points);
         }
 
-        // History 2
-        public void ActivateMembership(Guid id)
+        // MOCK-03: AccumulatePoints lanza excepción si membresía inactiva
+        [Test]
+        public void AccumulatePoints_InactiveMembership_ThrowsException()
         {
-            _repo.GetById(id).Activate();
+            // Arrange
+            var membership = new Membership("Anthony");
+            membership.Deactivate();
+            _repoMock.GetById(membership.Id).Returns(membership);
+
+            // Act & Assert
+            Assert.Throws<InvalidOperationException>(() =>
+                _service.AccumulatePoints(membership.Id));
         }
 
-        public void DeactivateMembership(Guid id)
+        // MOCK-04: RedeemPoints funciona cuando hay puntos suficientes
+        [Test]
+        public void RedeemPoints_EnoughPoints_RedeemsSuccessfully()
         {
-            _repo.GetById(id).Deactivate();
+            // Arrange
+            var membership = new Membership("Anthony");
+            membership.AddPoints(100, "setup");
+            _repoMock.GetById(membership.Id).Returns(membership);
+
+            // Act
+            _service.RedeemPoints(membership.Id);
+
+            // Assert — se redimieron 50 (MinimumPointsToRedeem por defecto)
+            Assert.AreEqual(50, membership.Points);
         }
 
-        // History 3
-        public bool GetMembershipStatus(Guid id)
+        // MOCK-05: RedeemPoints lanza excepción si no alcanza el mínimo
+        [Test]
+        public void RedeemPoints_NotEnoughPoints_ThrowsException()
         {
-            return _repo.GetById(id).IsActive;
+            // Arrange
+            var membership = new Membership("Anthony"); // Points = 0
+            _repoMock.GetById(membership.Id).Returns(membership);
+
+            // Act & Assert
+            Assert.Throws<InvalidOperationException>(() =>
+                _service.RedeemPoints(membership.Id));
         }
 
-        // History 4
-        public void AccumulatePoints(Guid id)
+        // MOCK-06: GenerateMembershipReport cuenta correctamente con datos del Mock
+        [Test]
+        public void GenerateMembershipReport_ReturnsCorrectCounts()
         {
-            var membership = _repo.GetById(id);
-            if (!membership.IsActive)
-                throw new InvalidOperationException("Membership inactive");
-            membership.AddPoints(_config.PointsPerUse, "Gym visit");
+            // Arrange — Mock devuelve lista controlada
+            var m1 = new Membership("Anthony");
+            var m2 = new Membership("Karen");
+            var m3 = new Membership("Luis");
+            m3.Deactivate();
+
+            _repoMock.GetAll().Returns(new List<Membership> { m1, m2, m3 });
+
+            // Act
+            var (active, inactive) = _service.GenerateMembershipReport();
+
+            // Assert
+            Assert.AreEqual(2, active);
+            Assert.AreEqual(1, inactive);
         }
 
-        // History 5
-        public void RedeemPoints(Guid id)
+        // MOCK-07: GetTransactionHistory devuelve transacciones del Mock
+        [Test]
+        public void GetTransactionHistory_ReturnsMembershipTransactions()
         {
-            var membership = _repo.GetById(id);
-            if (membership.Points < _config.MinimumPointsToRedeem)
-                throw new InvalidOperationException("Minimum points not reached");
-            membership.RedeemPoints(_config.MinimumPointsToRedeem, "Reward redemption");
+            // Arrange
+            var membership = new Membership("Anthony");
+            membership.AddPoints(50, "Visit");
+            _repoMock.GetById(membership.Id).Returns(membership);
+
+            // Act
+            var history = _service.GetTransactionHistory(membership.Id);
+
+            // Assert
+            Assert.AreEqual(1, history.Count);
+            Assert.AreEqual(50, history[0].Points);
         }
 
-        // History 6
-        public void SetPointsPerUse(int points)
+        // MOCK-08: GeneratePointsReport suma correctamente con datos del Mock
+        [Test]
+        public void GeneratePointsReport_ReturnsCorrectTotals()
         {
-            _config.SetPointsPerUse(points);
-        }
+            // Arrange
+            var m1 = new Membership("Anthony");
+            m1.AddPoints(100, "Visit");
+            m1.RedeemPoints(30, "Reward");
 
-        // History 7
-        public void SetMinimumPointsToRedeem(int points)
-        {
-            _config.SetMinimumPointsToRedeem(points);
-        }
+            var m2 = new Membership("Karen");
+            m2.AddPoints(50, "Visit");
 
-        // History 8
-        public IReadOnlyList<PointTransaction> GetTransactionHistory(Guid id)
-        {
-            return _repo.GetById(id).Transactions;
-        }
+            _repoMock.GetAll().Returns(new List<Membership> { m1, m2 });
 
-        // History 9
-        public (int Active, int Inactive) GenerateMembershipReport()
-        {
-            var all = _repo.GetAll();
-            int active = all.Count(m => m.IsActive);
-            int inactive = all.Count(m => !m.IsActive);
-            return (active, inactive);
-        }
+            // Act
+            var (earned, redeemed) = _service.GeneratePointsReport();
 
-        // History 10
-        public (int TotalEarned, int TotalRedeemed) GeneratePointsReport()
-        {
-            var all = _repo.GetAll();
-            int earned = all
-                .SelectMany(m => m.Transactions)
-                .Where(t => t.Type == TransactionType.Earned)
-                .Sum(t => t.Points);
-            int redeemed = all
-                .SelectMany(m => m.Transactions)
-                .Where(t => t.Type == TransactionType.Redeemed)
-                .Sum(t => t.Points);
-            return (earned, redeemed);
+            // Assert
+            Assert.AreEqual(150, earned);   // 100 + 50
+            Assert.AreEqual(30, redeemed);  // solo m1 redimió
         }
     }
 }

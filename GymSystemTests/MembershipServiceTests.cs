@@ -4,6 +4,7 @@ using System;
 
 namespace GymMembershipManagementSystem.Tests
 {
+    [TestFixture]
     public class MembershipServiceTests
     {
         [Test]
