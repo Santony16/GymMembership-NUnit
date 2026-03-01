@@ -78,7 +78,7 @@ namespace GymMembershipManagementSystem.Services
         }
 
         // History 8
-        public List<PointTransaction> GetTransactionHistory(Guid id)
+        public IReadOnlyList<PointTransaction> GetTransactionHistory(Guid id)
         {
             return GetById(id).Transactions;
         }

@@ -15,6 +15,12 @@ namespace GymMembershipManagementSystem.Business
 
         public PointTransaction(int points, TransactionType type, string description)
         {
+            if (points <= 0)
+                throw new ArgumentException("Points must be greater than zero");
+
+            if (string.IsNullOrWhiteSpace(description))
+                throw new ArgumentException("Description is required");
+
             Date = DateTime.UtcNow;
             Points = points;
             Type = type;
